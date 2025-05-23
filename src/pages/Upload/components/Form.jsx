@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { RxLightningBolt } from "react-icons/rx";
 import FileUploader from "./FileUploader";
+import { format } from 'date-fns';
 
 export default function Form() {
   const [files, setFiles] = useState([]);
@@ -12,9 +13,24 @@ export default function Form() {
   });
   const [results, setResults] = useState(null);
 
+  const [recentActivity, setRecentActivity] = useState([]);
   const handleFilesSelected = (selectedFiles) => {
-    setFiles(selectedFiles);
-  };
+  // Ensure it's always an array
+  const fileArray = Array.isArray(selectedFiles)
+    ? selectedFiles
+    : Array.from(selectedFiles || []);
+
+  setFiles(fileArray);
+
+  const updatedActivity = fileArray.map((file) => ({
+    name: file.name,
+    action: "Uploaded",
+    timestamp: new Date().toISOString(),
+  }));
+
+  setRecentActivity((prev) => [...updatedActivity, ...prev]);
+};
+console.log(recentActivity);
 
   const handleTaskChange = (e) => {
     const { name, checked } = e.target;
@@ -124,7 +140,7 @@ export default function Form() {
                 <label
                   key={task.name}
                   className={`flex flex-col gap-3 p-6 rounded-2xl border bg-white shadow-md transform transition duration-300 ease-in-out hover:-translate-y-1 hover:shadow-xl ${
-  tasks[task.name] ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+    tasks[task.name] ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
 }`}
 
                 >
@@ -192,23 +208,48 @@ export default function Form() {
         </div>
       </div>
 
-      {/* Quick Tips Sidebar */}
-      <div className="max-w-sm w-full rounded-3xl shadow border border-border bg-gradient-to-br from-cyan-500 to-blue-500 p-6 text-white self-start transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
-        <div className="flex items-center gap-3 mb-4">
-          <RxLightningBolt className="w-6 h-6" />
-          <h3 className="text-2xl font-bold">Quick Tips</h3>
-        </div>
-        <ul className="list-inside list-disc space-y-2 mb-6 text-white/90">
-          <li>Upload PDF, DOCX, or TXT files for best results</li>
-          <li>Ask specific questions for more accurate answers</li>
-          <li>Select multiple tasks to get comprehensive results</li>
-        </ul>
-        <a href="/tutorial">
-          <button className="w-full rounded-lg bg-white py-2 text-blue-500 font-medium transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer">
-          View Tutorial
-          </button>
-        </a>
-      </div>
+      <div className="max-w-sm w-full space-y-6">
+  {/* Quick Tips Section */}
+  <div className="rounded-3xl shadow border border-border bg-gradient-to-br from-cyan-500 to-blue-500 p-6 text-white self-start transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
+    <div className="flex items-center gap-3 mb-4">
+      <RxLightningBolt className="w-6 h-6" />
+      <h3 className="text-2xl font-bold">Quick Tips</h3>
+    </div>
+    <ul className="list-inside list-disc space-y-2 mb-6 text-white/90">
+      <li>Upload PDF, DOCX, or TXT files for best results</li>
+      <li>Ask specific questions for more accurate answers</li>
+      <li>Select multiple tasks to get comprehensive results</li>
+    </ul>
+    <a href="/tutorial">
+      <button className="w-full rounded-lg bg-white py-2 text-blue-500 font-medium transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer">
+        View Tutorial
+      </button>
+    </a>
+  </div>
+
+  {/* Recent Activity Section */}
+  <div className="rounded-3xl shadow border border-border bg-white p-6 text-gray-800 transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer">
+    <h3 className="text-xl font-semibold mb-4">Recent Activity</h3>
+    <ul className="space-y-3 text-sm">
+      {recentActivity.length === 0 ? (
+        <p className="text-gray-500">No recent activity</p>
+      ) : (
+        recentActivity.slice(0,5).map((item, index) => (
+          <li key={index} className="flex items-center gap-3">
+            <div className="bg-gray-100 p-2 rounded-full">📄</div>
+            <div>
+              <p className="font-medium text-gray-900">{item.name}</p>
+              <p className="text-gray-500">{item.action} at {item.timestamp}</p>
+            </div>
+          </li>
+        ))
+      )}
+    </ul>
+  </div>
+
+</div>
+
+
     </div>
   );
 }
