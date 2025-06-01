@@ -5,8 +5,8 @@ import { Link } from "react-router";
 
 const navigation = [
   { name: "Product", href: "#" },
-  { name: "Features", href: "#features" },
-  { name: "Marketplace", href: "#" },
+  { name: "Tools", href: "#features" },
+  { name: "Games", href: "#games" },
   { name: "Company", href: "#" },
 ];
 
@@ -20,14 +20,14 @@ export default function Navbar() {
         className="flex items-center justify-between p-6 lg:px-8"
       >
         <div className="flex lg:flex-1">
-          <Link to="#" className="-m-1.5 p-1.5">
+          <a href="https://www.asu.edu/" target="_blank" rel="noopener noreferrer" className="-m-1.5 p-1.5">
             <span className="sr-only">Your Company</span>
             <img
               alt=""
               src="src\assets\ASU-Logo.png"
-              className="h-8 w-auto transform transition-transform duration-200 hover:-translate-y-1"
+              className="h-10 w-auto transform transition-transform duration-200 hover:-translate-y-1"
             />
-          </Link>
+          </a>
         </div>
         <div className="flex lg:hidden">
           <button

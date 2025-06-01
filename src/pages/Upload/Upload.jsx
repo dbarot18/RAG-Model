@@ -1,34 +1,47 @@
 import Footer from "@/layout/Footer";
-import { Link } from "react-router";
+import { useEffect } from "react";
 import Form from "./components/Form";
 
 export default function Upload() {
-  return (
-    <div className="h-screen w-screen flex flex-col">
-      <header className="absolute inset-x-0 top-0 z-50">
-        <nav
-          aria-label="Global"
-          className="flex items-center justify-between p-6 lg:px-8"
-        >
-          <div className="flex lg:flex-1">
-            <Link to="#" className="-m-1.5 p-1.5">
-              <span className="sr-only">Your Company</span>
-              <img
-                alt=""
-                src="src\assets\ASU-Logo.png"
-              className="h-8 w-auto transform transition-transform duration-200 hover:-translate-y-1"
-              />
-            </Link>
-          </div>
-        </nav>
-      </header>
-      {/* Container */}
-      <div className="container px-8 md:px-16 lg:px-32 mt-44 mb-24">
-        <div className="h-screen"><Form /></div>
-      </div>
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
-      {/* Footer */}
-      <div className="mt-auto">
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-100 via-purple-100 to-white">
+      <div className="flex flex-col min-h-screen w-full">
+        {/* Header */}
+        <header className="absolute inset-x-0 top-0 z-50">
+          <nav
+            aria-label="Global"
+            className="flex items-center justify-between p-6 lg:px-8"
+          >
+            <div className="flex items-center justify-center w-full">
+              <a
+                href="https://www.asu.edu/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="-m-1.5 p-1.5"
+              >
+                <span className="sr-only">Arizona State University</span>
+                <img
+                  alt="ASU Logo"
+                  src="src/assets/ASU-Logo.png"
+                  className="h-17 w-auto transform transition-transform duration-200 hover:-translate-y-1 drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
+                />
+              </a>
+            </div>
+          </nav>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1">
+          <div className="container px-8 md:px-16 lg:px-32 pt-34 pb-24">
+            <Form />
+          </div>
+        </main>
+
+        {/* Footer */}
         <Footer />
       </div>
     </div>
