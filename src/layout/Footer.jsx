@@ -49,7 +49,7 @@ export default function Footer() {
           </a>
         </div>
         <p className="mt-10 text-center text-sm/6 text-gray-400">
-          © 2024 EduGenius, Inc. All rights reserved.
+          © 2025 RAG Assistant, Inc. All rights reserved.
         </p>
       </div>
     </footer>
