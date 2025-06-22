@@ -4,7 +4,6 @@ import FileUploader from "./FileUploader";
 import { format } from "date-fns";
 import UploadIllustration from "@/assets/undraw_files-uploading_qf8u.svg";
 
-
 export default function Form() {
   const [files, setFiles] = useState([]);
   const [prompt, setPrompt] = useState("");
@@ -18,8 +17,10 @@ export default function Form() {
   });
   const [results, setResults] = useState(null);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const handleFilesSelected = (selectedFiles) => {
+    setResults(null); // Clear previous results on new upload
     const fileArray = Array.isArray(selectedFiles)
       ? selectedFiles
       : Array.from(selectedFiles || []);
@@ -65,46 +66,90 @@ export default function Form() {
   const handleClear = () => {
     setFiles([]);
     setPrompt("");
-    setTasks({ summarize: false, explain: false, quiz: false });
+    setTasks({
+      summarize: false,
+      explain: false,
+      quiz: false,
+      voice: false,
+      podcast: false,
+      visualize: false,
+    });
     setResults(null);
   };
 
   const handleSubmit = async () => {
-    if (!files.length) {
-      alert("Please upload at least one document.");
-      return;
-    }
-    if (!Object.values(tasks).some(Boolean)) {
-      alert("Please select at least one task.");
-      return;
-    }
+  if (!files.length) {
+    alert("Please upload at least one document.");
+    return;
+  }
 
-    try {
-      const formData = new FormData();
-      files.forEach((file) => formData.append("files", file));
-      const docRes = await fetch("/api/documents", {
+  if (!tasks.summarize && !tasks.explain) {
+    alert("Please select at least one of Summarize or Explain tasks.");
+    return;
+  }
+
+  if (tasks.explain && !prompt.trim()) {
+    alert("Please enter a prompt/question to get an explanation.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append("file", files[0]); // only the first file
+
+    // Summarize
+    let summaryResult = null;
+    if (tasks.summarize) {
+      const response = await fetch("http://127.0.0.1:8000/summarize_pdf/", {
         method: "POST",
         body: formData,
       });
-      const doc = await docRes.json();
 
-      const selected = Object.keys(tasks).filter((k) => tasks[k]);
-      const taskRes = await fetch("/api/tasks", {
+      if (!response.ok) throw new Error("Failed to summarize PDF");
+
+      const data = await response.json();
+      if (data.error) {
+        alert("Error: " + data.error);
+        setLoading(false);
+        return;
+      }
+      summaryResult = data.summary;
+    }
+
+    // Explain
+    let explanationResult = null;
+    if (tasks.explain && prompt.trim()) {
+      const explainResponse = await fetch("http://127.0.0.1:8000/explain_concept/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          documentId: doc.id,
-          prompt,
-          tasks: selected,
-        }),
+        body: JSON.stringify({ concept: prompt }),
       });
-      const data = await taskRes.json();
-      setResults(data);
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong. Please try again.");
+
+      if (!explainResponse.ok) throw new Error("Failed to get explanation");
+
+      const explainData = await explainResponse.json();
+      if (explainData.error) {
+        alert("Error: " + explainData.error);
+        setLoading(false);
+        return;
+      }
+      explanationResult = explainData.explanation;
     }
-  };
+
+    setResults({
+      summarize: summaryResult,
+      explain: explanationResult,
+    });
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const taskCards = [
     {
@@ -136,14 +181,12 @@ export default function Form() {
       name: "visualize",
       label: "Visualize Data",
       description: "Convert content into easy-to-understand visuals.",
-    }
+    },
   ];
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Main Content */}
       <main className="flex flex-col md:flex-row gap-8 w-full flex-1 px-4 py-6">
-        {/* Main Form Panel */}
         <div className="w-full md:w-2/3 flex flex-col rounded-3xl border border-border overflow-hidden">
           <div className="p-6 bg-gradient-to-r from-blue-500 to-cyan-600">
             <h2 className="text-2xl font-medium text-white">RAG Assistant</h2>
@@ -153,17 +196,17 @@ export default function Form() {
           </div>
 
           <div className="flex-1 bg-white flex flex-col p-6 gap-6 overflow-auto">
-          <div>
-            <label className="block mb-2 font-semibold">Upload document</label>
-            <div className="flex flex-col lg:flex-row items-center gap-6">
-              <img
-                src={UploadIllustration}
-                alt="Upload Illustration"
-                className="w-64 h-auto"
-              />
-              <FileUploader onFilesSelected={handleFilesSelected} />
+            <div>
+              <label className="block mb-2 font-semibold">Upload document</label>
+              <div className="flex flex-col lg:flex-row items-center gap-6">
+                <img
+                  src={UploadIllustration}
+                  alt="Upload Illustration"
+                  className="w-64 h-auto"
+                />
+                <FileUploader onFilesSelected={handleFilesSelected} />
+              </div>
             </div>
-          </div>
 
             <div>
               <textarea
@@ -182,7 +225,9 @@ export default function Form() {
                   <label
                     key={task.name}
                     className={`flex flex-col gap-3 p-6 rounded-2xl border bg-white shadow-md transform transition duration-300 ease-in-out hover:-translate-y-1 hover:shadow-xl ${
-                      tasks[task.name] ? "border-blue-500 bg-blue-50" : "border-gray-200"
+                      tasks[task.name]
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200"
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -203,17 +248,15 @@ export default function Form() {
 
             <div className="flex flex-wrap gap-4">
               <button
-                type="button"
-                onClick={handleSubmit}
-                className="btn"
-              >
-                Submit
+              type="button" // ✅ prevents accidental GET request/page reload
+              onClick={handleSubmit}
+              className="btn"
+              disabled={loading}
+            >
+
+                {loading ? "Summarizing…" : "Submit"}
               </button>
-              <button
-                type="button"
-                onClick={handleClear}
-                className="btn ghost"
-              >
+              <button type="button" onClick={handleClear} className="btn ghost">
                 Clear
               </button>
             </div>
@@ -247,7 +290,6 @@ export default function Form() {
           </div>
         </div>
 
-        {/* Sidebar Section */}
         <div className="w-full md:w-1/3 space-y-6">
           <div className="rounded-3xl shadow border border-border bg-gradient-to-br from-cyan-500 to-blue-500 p-6 text-white transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
             <div className="flex items-center gap-3 mb-4">
