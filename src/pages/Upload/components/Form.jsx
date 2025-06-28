@@ -77,19 +77,19 @@ export default function Form() {
     setResults(null);
   };
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
   if (!files.length) {
     alert("Please upload at least one document.");
     return;
   }
 
-  if (!tasks.summarize && !tasks.explain) {
-    alert("Please select at least one of Summarize or Explain tasks.");
+  if (!tasks.summarize && !tasks.explain && !tasks.quiz) {
+    alert("Please select at least one task.");
     return;
   }
 
   if (tasks.explain && !prompt.trim()) {
-    alert("Please enter a prompt/question to get an explanation.");
+    alert("Please enter a prompt for explanation.");
     return;
   }
 
@@ -97,51 +97,84 @@ export default function Form() {
 
   try {
     const formData = new FormData();
-    formData.append("file", files[0]); // only the first file
+    formData.append("file", files[0]);
 
-    // Summarize
-    let summaryResult = null;
-    if (tasks.summarize) {
-      const response = await fetch("http://127.0.0.1:8000/summarize_pdf/", {
-        method: "POST",
-        body: formData,
-      });
+    // 1. Upload + Summarize to get session_id
+    const uploadRes = await fetch("http://127.0.0.1:8000/summarize_pdf/", {
+      method: "POST",
+      body: formData,
+    });
 
-      if (!response.ok) throw new Error("Failed to summarize PDF");
+    if (!uploadRes.ok) throw new Error("Failed to upload and summarize PDF");
+    const uploadData = await uploadRes.json();
 
-      const data = await response.json();
-      if (data.error) {
-        alert("Error: " + data.error);
-        setLoading(false);
-        return;
-      }
-      summaryResult = data.summary;
+    if (uploadData.error) {
+      alert("Error: " + uploadData.error);
+      setLoading(false);
+      return;
     }
 
-    // Explain
-    let explanationResult = null;
+    const session_id = uploadData.session_id;
+    const resultsObj = {};
+
+    // 2. Add summary to results
+    if (tasks.summarize) {
+      resultsObj.summarize = uploadData.summary;
+    }
+
+    // 3. Explain
     if (tasks.explain && prompt.trim()) {
-      const explainResponse = await fetch("http://127.0.0.1:8000/explain_concept/", {
+      const explainRes = await fetch("http://127.0.0.1:8000/explain_concept/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ concept: prompt }),
+        body: JSON.stringify({
+          session_id,
+          concept: prompt,
+        }),
       });
 
-      if (!explainResponse.ok) throw new Error("Failed to get explanation");
+      if (!explainRes.ok) throw new Error("Failed to fetch explanation");
+      const explainData = await explainRes.json();
 
-      const explainData = await explainResponse.json();
       if (explainData.error) {
         alert("Error: " + explainData.error);
         setLoading(false);
         return;
       }
-      explanationResult = explainData.explanation;
+
+      resultsObj.explain = explainData.explanation;
     }
 
-    setResults({
-      summarize: summaryResult,
-      explain: explanationResult,
-    });
+    // 4. Quiz
+    if (tasks.quiz) {
+      const quizRes = await fetch("http://127.0.0.1:8000/generate_quiz/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id,
+          prompt: prompt || "",  // optional
+        }),
+      });
+
+      if (!quizRes.ok) throw new Error("Failed to generate quiz");
+      const quizData = await quizRes.json();
+
+      if (quizData.error) {
+        alert("Error: " + quizData.error);
+        setLoading(false);
+        return;
+      }
+
+      // Support string fallback ("Only X questions can be generated") or array
+      resultsObj.quiz =
+        typeof quizData.quiz === "string"
+          ? [quizData.quiz]
+          : Array.isArray(quizData.quiz)
+          ? quizData.quiz
+          : ["Unexpected quiz format."];
+    }
+
+    setResults(resultsObj);
   } catch (err) {
     console.error(err);
     alert("Something went wrong. Please try again.");
@@ -149,6 +182,8 @@ export default function Form() {
     setLoading(false);
   }
 };
+
+
 
 
   const taskCards = [
@@ -279,8 +314,11 @@ export default function Form() {
                   <div>
                     <h3 className="font-semibold">Quiz Questions</h3>
                     <ul className="list-disc pl-5">
-                      {results.quiz.map((q, i) => (
-                        <li key={i}>{q}</li>
+                      {(Array.isArray(results.quiz)
+                        ? results.quiz
+                        : results.quiz.split(/\n(?=\d+\.)/)  // splits on numbered lines like "1.", "2.", etc.
+                      ).map((q, i) => (
+                        <li key={i} dangerouslySetInnerHTML={{ __html: q.trim() }} />
                       ))}
                     </ul>
                   </div>
