@@ -8,7 +8,13 @@ export default function Upload() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-100 via-purple-100 to-white">
+    <div
+      className="min-h-screen w-full bg-[length:400%_400%] animate-gradientShift"
+      style={{
+        backgroundImage:
+          "linear-gradient(-45deg, #fef6e4, #e0f4f5, #f0eafc, #fdf2f8, #e4f0d0)"
+      }}
+    >
       <div className="flex flex-col min-h-screen w-full">
         {/* Header */}
         <header className="absolute inset-x-0 top-0 z-50">

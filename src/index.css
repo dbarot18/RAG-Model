@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@100..700&display=swap');
+@import "tailwindcss";
 
 
 @keyframes gradientShift {
@@ -12,6 +12,16 @@
   100% {
     background-position: 0% 50%;
   }
+}
+
+.bg-video-blur {
+  filter: blur(3px);
+}
+
+.smooth-gradient {
+  background: linear-gradient(270deg, #c7d2fe, #e0e7ff, #cec9df);
+  background-size: 600% 600%;
+  animation: gradientShift 15s ease infinite;
 }
 
 @theme {
@@ -113,3 +123,6 @@
   animation: collideIn 1s ease-out forwards;
 }
 
+.animate-gradientShift {
+  animation: gradientShift 10s ease infinite;
+}

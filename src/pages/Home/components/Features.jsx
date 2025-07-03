@@ -1,10 +1,45 @@
+import { useState, useEffect } from "react";
 import { MegaphoneIcon, MicrophoneIcon } from "@heroicons/react/24/outline";
 import { Link } from "react-router";
 import { ChartBarIcon } from "@heroicons/react/24/outline";
+import bg1 from "@/assets/bg1.mp4";
+import bg2 from "@/assets/bg2.mp4";
+import bg3 from "@/assets/bg3.mp4";
+import bg4 from "@/assets/bg4.mp4";
+
+const videoList = [bg1, bg2, bg3, bg4];
 
 export default function Features() {
+
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActive((prev) => (prev + 1) % videoList.length);
+    }, 4000); 
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-      <section id="features" className="relative isolate bg-gray-50 pt-16 pb-24">
+    <section id="features" className="relative isolate bg-gray-50 min-h-screen pt-16 pb-24">
+      {/* Background Video Layer */}
+      <div className="absolute inset-0 w-full h-full z-0">
+        {videoList.map((video, index) => (
+          <video
+            key={index}
+            src={video}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ${
+              active === index ? "opacity-30" : "opacity-0"
+            }`}
+          />
+        ))}
+      </div>
+
+
       <div className="mx-auto max-w-2xl px-6 lg:max-w-7xl lg:px-8">
         <p className="mx-auto mt-2 text-center text-4xl font-semibold tracking-tight text-balance text-gray-950 sm:text-5xl">
           Enhance your learning Experience

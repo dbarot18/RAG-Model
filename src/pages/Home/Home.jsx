@@ -6,6 +6,7 @@ import Features from "./components/Features";
 import CTA from "./components/CTA";
 import Games from "./components/Games";
 
+
 export default function Home() {
   return (
     <div className="bg-white">
