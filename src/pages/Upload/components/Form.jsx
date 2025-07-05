@@ -20,6 +20,7 @@ export default function Form() {
   const [loading, setLoading] = useState(false);
 
   const handleFilesSelected = (selectedFiles) => {
+    setResults(null); // Clear previous results on new upload
     const fileArray = Array.isArray(selectedFiles)
       ? selectedFiles
       : Array.from(selectedFiles || []);
@@ -41,6 +42,7 @@ export default function Form() {
     setFiles([]);
     setPrompt("");
     setQuizCount(""); // clear quiz input
+
     setTasks({
       summarize: false,
       explain: false,
@@ -52,14 +54,49 @@ export default function Form() {
     setResults(null);
   };
 
-  const handleSubmit = async () => {
-    if (!files.length) {
-      alert("Please upload at least one document.");
+const handleSubmit = async () => {
+  if (!files.length) {
+    alert("Please upload at least one document.");
+    return;
+  }
+
+  if (!tasks.summarize && !tasks.explain && !tasks.quiz) {
+    alert("Please select at least one task.");
+    return;
+  }
+
+  if (tasks.explain && !prompt.trim()) {
+    alert("Please enter a prompt for explanation.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append("file", files[0]);
+
+    // 1. Upload + Summarize to get session_id
+    const uploadRes = await fetch("http://127.0.0.1:8000/summarize_pdf/", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!uploadRes.ok) throw new Error("Failed to upload and summarize PDF");
+    const uploadData = await uploadRes.json();
+
+    if (uploadData.error) {
+      alert("Error: " + uploadData.error);
+      setLoading(false);
       return;
     }
-    if (!Object.values(tasks).some(Boolean)) {
-      alert("Please select at least one task.");
-      return;
+
+    const session_id = uploadData.session_id;
+    const resultsObj = {};
+
+    // 2. Add summary to results
+    if (tasks.summarize) {
+      resultsObj.summarize = uploadData.summary;
     }
 
     setLoading(true); // show loader
@@ -69,9 +106,12 @@ export default function Form() {
       files.forEach((file) => formData.append("files", file));
       const docRes = await fetch("/api/documents", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id,
+          concept: prompt,
+        }),
       });
-      const doc = await docRes.json();
 
       const selectedTasks = Object.keys(tasks).filter((k) => tasks[k]);
 
@@ -93,7 +133,15 @@ export default function Form() {
     } finally {
       setLoading(false); // hide loader
     }
-  };
+
+    setResults(resultsObj);
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const taskCards = [
     {
@@ -149,6 +197,7 @@ export default function Form() {
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex flex-col md:flex-row gap-8 w-full flex-1 px-4 py-6">
+
         {/* Left Panel */}
         <div className="w-full md:w-2/3 flex flex-col rounded-3xl border border-border overflow-hidden">
           <div className="p-6 bg-gradient-to-r from-blue-500 to-cyan-600">
@@ -159,6 +208,7 @@ export default function Form() {
           </div>
 
           <div className="flex-1 bg-white flex flex-col p-6 gap-6 overflow-auto">
+
             {/* Upload */}
             <div className="">
               <label className="block mb-2 font-semibold flex justify-center">Upload document</label>
@@ -288,8 +338,11 @@ export default function Form() {
                   <div>
                     <h3 className="font-semibold">Quiz Questions</h3>
                     <ul className="list-disc pl-5">
-                      {results.quiz.map((q, i) => (
-                        <li key={i}>{q}</li>
+                      {(Array.isArray(results.quiz)
+                        ? results.quiz
+                        : results.quiz.split(/\n(?=\d+\.)/)  // splits on numbered lines like "1.", "2.", etc.
+                      ).map((q, i) => (
+                        <li key={i} dangerouslySetInnerHTML={{ __html: q.trim() }} />
                       ))}
                     </ul>
                   </div>
