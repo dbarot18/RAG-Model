@@ -4,7 +4,7 @@ import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Link } from "react-router";
 
 const navigation = [
-  { name: "Product", href: "#" },
+  { name: "Product", href: "/product" },
   { name: "Tools", href: "#features" },
   { name: "Games", href: "#games" },
   { name: "Company", href: "#" },
@@ -20,12 +20,12 @@ export default function Navbar() {
         className="flex items-center justify-between p-6 lg:px-8"
       >
         <div className="flex lg:flex-1">
-          <a href="https://www.asu.edu/" target="_blank" rel="noopener noreferrer" className="-m-1.5 p-1.5">
+          <a href="https://www.asu.edu/" target="_blank" rel="noopener noreferrer" className="-mt-1.5 p-1.5">
             <span className="sr-only">Your Company</span>
             <img
               alt=""
               src="src\assets\ASU-Logo.png"
-              className="h-10 w-auto transform transition-transform duration-200 hover:-translate-y-1"
+              className="h-11 w-auto transform transition-transform duration-200 hover:-translate-y-1"
             />
           </a>
         </div>
@@ -51,7 +51,7 @@ export default function Navbar() {
           ))}
         </div>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-          <Link to="#" className="text-sm/6 font-semibold text-gray-900">
+          <Link to="/login" className="text-sm/6 font-semibold text-gray-900">
             Log in <span aria-hidden="true">&rarr;</span>
           </Link>
         </div>
@@ -97,7 +97,7 @@ export default function Navbar() {
               </div>
               <div className="py-6">
                 <Link
-                  to="#"
+                  to="/login"
                   className="-mx-3 block rounded-lg px-3 py-2.5 text-base/7 font-semibold text-gray-900 hover:bg-gray-50"
                 >
                   Log in

@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { RxLightningBolt } from "react-icons/rx";
 import FileUploader from "./FileUploader";
 import { format } from "date-fns";
-import UploadIllustration from "@/assets/undraw_files-uploading_qf8u.svg";
 
 export default function Form() {
   const [files, setFiles] = useState([]);
   const [prompt, setPrompt] = useState("");
+  const [quizCount, setQuizCount] = useState(""); // NEW: input for quiz questions
   const [tasks, setTasks] = useState({
     summarize: false,
     explain: false,
@@ -33,31 +33,6 @@ export default function Form() {
     setRecentActivity((prev) => [...updatedActivity, ...prev]);
   };
 
-  const getFileIcon = (filename) => {
-    const ext = filename.split(".").pop().toLowerCase();
-    switch (ext) {
-      case "pdf":
-        return "📕";
-      case "doc":
-      case "docx":
-        return "📄";
-      case "ppt":
-      case "pptx":
-        return "📊";
-      case "xls":
-      case "xlsx":
-        return "📈";
-      case "txt":
-        return "📝";
-      case "jpg":
-      case "jpeg":
-      case "png":
-        return "🖼️";
-      default:
-        return "📁";
-    }
-  };
-
   const handleTaskChange = (e) => {
     const { name, checked } = e.target;
     setTasks((prev) => ({ ...prev, [name]: checked }));
@@ -66,6 +41,8 @@ export default function Form() {
   const handleClear = () => {
     setFiles([]);
     setPrompt("");
+    setQuizCount(""); // clear quiz input
+
     setTasks({
       summarize: false,
       explain: false,
@@ -122,9 +99,12 @@ const handleSubmit = async () => {
       resultsObj.summarize = uploadData.summary;
     }
 
-    // 3. Explain
-    if (tasks.explain && prompt.trim()) {
-      const explainRes = await fetch("http://127.0.0.1:8000/explain_concept/", {
+    setLoading(true); // show loader
+
+    try {
+      const formData = new FormData();
+      files.forEach((file) => formData.append("files", file));
+      const docRes = await fetch("/api/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -133,45 +113,25 @@ const handleSubmit = async () => {
         }),
       });
 
-      if (!explainRes.ok) throw new Error("Failed to fetch explanation");
-      const explainData = await explainRes.json();
+      const selectedTasks = Object.keys(tasks).filter((k) => tasks[k]);
 
-      if (explainData.error) {
-        alert("Error: " + explainData.error);
-        setLoading(false);
-        return;
-      }
-
-      resultsObj.explain = explainData.explanation;
-    }
-
-    // 4. Quiz
-    if (tasks.quiz) {
-      const quizRes = await fetch("http://127.0.0.1:8000/generate_quiz/", {
+      const taskRes = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          session_id,
-          prompt: prompt || "",  // optional
+          documentId: doc.id,
+          prompt,
+          tasks: selectedTasks,
+          quizCount: quizCount || null,
         }),
       });
-
-      if (!quizRes.ok) throw new Error("Failed to generate quiz");
-      const quizData = await quizRes.json();
-
-      if (quizData.error) {
-        alert("Error: " + quizData.error);
-        setLoading(false);
-        return;
-      }
-
-      // Support string fallback ("Only X questions can be generated") or array
-      resultsObj.quiz =
-        typeof quizData.quiz === "string"
-          ? [quizData.quiz]
-          : Array.isArray(quizData.quiz)
-          ? quizData.quiz
-          : ["Unexpected quiz format."];
+      const data = await taskRes.json();
+      setResults(data);
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false); // hide loader
     }
 
     setResults(resultsObj);
@@ -182,9 +142,6 @@ const handleSubmit = async () => {
     setLoading(false);
   }
 };
-
-
-
 
   const taskCards = [
     {
@@ -204,8 +161,8 @@ const handleSubmit = async () => {
     },
     {
       name: "voice",
-      label: "Voice Interaction",
-      description: "Use voice commands to learn hands-free.",
+      label: "Relevant Case Study",
+      description: "Innovation applied in real scenarios",
     },
     {
       name: "podcast",
@@ -219,9 +176,29 @@ const handleSubmit = async () => {
     },
   ];
 
+  const getFileIcon = (filename) => {
+    const ext = filename.split(".").pop().toLowerCase();
+    switch (ext) {
+      case "pdf": return "📕";
+      case "doc":
+      case "docx": return "📄";
+      case "ppt":
+      case "pptx": return "📊";
+      case "xls":
+      case "xlsx": return "📈";
+      case "txt": return "📝";
+      case "jpg":
+      case "jpeg":
+      case "png": return "🖼️";
+      default: return "📁";
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex flex-col md:flex-row gap-8 w-full flex-1 px-4 py-6">
+
+        {/* Left Panel */}
         <div className="w-full md:w-2/3 flex flex-col rounded-3xl border border-border overflow-hidden">
           <div className="p-6 bg-gradient-to-r from-blue-500 to-cyan-600">
             <h2 className="text-2xl font-medium text-white">RAG Assistant</h2>
@@ -231,18 +208,16 @@ const handleSubmit = async () => {
           </div>
 
           <div className="flex-1 bg-white flex flex-col p-6 gap-6 overflow-auto">
-            <div>
-              <label className="block mb-2 font-semibold">Upload document</label>
-              <div className="flex flex-col lg:flex-row items-center gap-6">
-                <img
-                  src={UploadIllustration}
-                  alt="Upload Illustration"
-                  className="w-64 h-auto"
-                />
+
+            {/* Upload */}
+            <div className="">
+              <label className="block mb-2 font-semibold flex justify-center">Upload document</label>
+              <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
                 <FileUploader onFilesSelected={handleFilesSelected} />
               </div>
             </div>
 
+            {/* Prompt */}
             <div>
               <textarea
                 value={prompt}
@@ -253,16 +228,32 @@ const handleSubmit = async () => {
               />
             </div>
 
+            {/* Quiz Count (conditionally shown) */}
+            {tasks.quiz && (
+              <div>
+                <label className="block mb-2 font-semibold">
+                  Number of quiz questions
+                </label>
+                <input
+                  type="number"
+                  value={quizCount}
+                  onChange={(e) => setQuizCount(e.target.value)}
+                  className="border border-blue-600 rounded-lg w-full py-2 px-3"
+                  placeholder="e.g., 5 or 10"
+                  min={1}
+                />
+              </div>
+            )}
+
+            {/* Task Selection */}
             <div>
               <p className="mb-2 font-semibold">Select Tasks</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {taskCards.map((task) => (
                   <label
                     key={task.name}
-                    className={`flex flex-col gap-3 p-6 rounded-2xl border bg-white shadow-md transform transition duration-300 ease-in-out hover:-translate-y-1 hover:shadow-xl ${
-                      tasks[task.name]
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200"
+                    className={`flex flex-col gap-3 p-6 rounded-2xl border bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl ${
+                      tasks[task.name] ? "border-blue-500 bg-blue-50" : "border-gray-200"
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -281,21 +272,54 @@ const handleSubmit = async () => {
               </div>
             </div>
 
+            {/* Buttons */}
             <div className="flex flex-wrap gap-4">
               <button
-              type="button" // ✅ prevents accidental GET request/page reload
-              onClick={handleSubmit}
-              className="btn"
-              disabled={loading}
-            >
-
-                {loading ? "Summarizing…" : "Submit"}
+                type="button"
+                onClick={handleSubmit}
+                className="btn"
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      ></path>
+                    </svg>
+                    Processing...
+                  </div>
+                ) : (
+                  "Submit"
+                )}
               </button>
-              <button type="button" onClick={handleClear} className="btn ghost">
+
+              <button
+                type="button"
+                onClick={handleClear}
+                className="btn ghost"
+                disabled={loading}
+              >
                 Clear
               </button>
             </div>
 
+            {/* Results */}
             {results && (
               <div className="mt-4 space-y-4">
                 {results.summarize && (
@@ -328,25 +352,27 @@ const handleSubmit = async () => {
           </div>
         </div>
 
+        {/* Right Sidebar */}
         <div className="w-full md:w-1/3 space-y-6">
-          <div className="rounded-3xl shadow border border-border bg-gradient-to-br from-cyan-500 to-blue-500 p-6 text-white transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
+          <div className="rounded-3xl shadow border border-border bg-gradient-to-br from-cyan-500 to-blue-500 p-6 text-white hover:-translate-y-1 hover:shadow-lg transition-transform">
             <div className="flex items-center gap-3 mb-4">
               <RxLightningBolt className="w-6 h-6" />
               <h3 className="text-2xl font-bold">Quick Tips</h3>
             </div>
-            <ul className="list-inside list-disc space-y-2 mb-6 text-white/90">
-              <li>Upload PDF, DOCX, or TXT files for best results</li>
-              <li>Ask specific questions for more accurate answers</li>
-              <li>Select multiple tasks to get comprehensive results</li>
+            <ul className="list-disc space-y-2 text-white/90 mb-6">
+              <li>Upload PDF, DOCX, or TXT files</li>
+              <li>Ask specific questions</li>
+              <li>Select multiple tasks</li>
             </ul>
             <a href="/tutorial">
-              <button className="w-full rounded-lg bg-white py-2 text-blue-500 font-medium transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer">
+              <button className="w-full bg-white text-blue-500 rounded-lg py-2 hover:shadow-lg transition-transform">
                 View Tutorial
               </button>
             </a>
           </div>
 
-          <div className="rounded-3xl shadow border border-border bg-white p-6 text-gray-800 transform transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer">
+          {/* Recent Activity */}
+          <div className="rounded-3xl shadow border border-border bg-white p-6 text-gray-800 hover:-translate-y-1 hover:shadow-lg transition-transform">
             <h3 className="text-xl font-semibold mb-4">Recent Activity</h3>
             <ul className="space-y-3 text-sm">
               {recentActivity.length === 0 ? (
@@ -354,9 +380,7 @@ const handleSubmit = async () => {
               ) : (
                 recentActivity.slice(0, 5).map((item, index) => (
                   <li key={index} className="flex items-center gap-3">
-                    <div className="bg-gray-100 p-2 rounded-full">
-                      {getFileIcon(item.name)}
-                    </div>
+                    <div className="bg-gray-100 p-2 rounded-full">{getFileIcon(item.name)}</div>
                     <div>
                       <p className="font-medium text-gray-900">{item.name}</p>
                       <p className="text-gray-500">
