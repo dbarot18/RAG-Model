@@ -120,7 +120,7 @@ export default function ProductPage() {
                   <li key={i}>{point}</li>
                 ))}
               </ul>
-              <button className="mt-4 text-sm text-blue-600 hover:underline">
+              <button className="mt-4 text-sm text-white hover:underline">
                 Learn More →
               </button>
             </div>
