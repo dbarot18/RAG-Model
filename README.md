@@ -10,3 +10,22 @@ Currently, two official plugins are available:
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+
+Steps to run the website
+On terminal 1
+1.npm install 
+2.chmod +x node_modules/.bin/vite
+3.rm -rf node_modules package-lock.json
+4.npm install 
+5.npm run dev
+
+On terminal 2
+1.pip install langchain langchain-community pypdf chromadb sentence-transformers flask
+2.ollama run llama3
+
+On terminal 3
+1.source .venv/bin/activate
+2.cd backend
+3.pip show python-multipart
+4.uvicorn main:app --reload
