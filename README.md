@@ -13,6 +13,8 @@ If you are developing a production application, we recommend using TypeScript wi
 
 
 Steps to run the website
+npm i react-markdown remark-gfm
+
 On terminal 1
 1.npm install 
 2.chmod +x node_modules/.bin/vite

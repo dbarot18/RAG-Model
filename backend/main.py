@@ -15,6 +15,8 @@ import time
 import uuid
 import os
 import re
+import pandas as pd
+import json
 
 app = FastAPI()
 
@@ -28,7 +30,6 @@ app.add_middleware(
 
 # Global cache for QA chains if needed
 session_chains = {}
-
 # ---------------------------- Models ----------------------------
 
 class ExplainRequest(BaseModel):
@@ -73,9 +74,21 @@ async def summarize_pdf(file: UploadFile = File(...)):
         # Summarize first N chunks
         combined_text = "\n".join([doc.page_content for doc in docs[:15]])
         prompt = (
-            "Summarize the following technical content clearly and concisely:\n\n"
-            f"{combined_text}\n\nSummary:"
-        )
+    "You are a clear and engaging explainer. Create a detailed, accurate summary of the following content, "
+    "making it easy for students to understand while keeping all important facts and technical details.\n\n"
+    "Focus on:\n"
+    "1. Breaking big ideas into smaller, easy-to-digest points.\n"
+    "2. Keeping important terms, numbers, and examples.\n"
+    "3. Organizing ideas with short headings or bullet points.\n"
+    "4. Avoiding extra fluff—stick to what’s in the text.\n"
+    "5. If something is missing, mark it as [information not provided].\n\n"
+    "Output format:\n"
+    "- Short intro paragraph giving the big picture.\n"
+    "- Clear section-by-section breakdown.\n"
+    "- A 'Key Takeaways' list for quick revision.\n\n"
+    f"Document Content:\n{combined_text}\n\nDetailed Summary:"
+)
+
         response = llm.invoke(prompt)
 
         return {
@@ -106,7 +119,36 @@ async def explain_concept(request: ExplainRequest):
         qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
 
         concept = request.concept
-        prompt = f"Explain the concept of '{concept}' in simple terms with examples."
+        prompt = (
+            f"You are a patient teacher. Explain the concept '{concept}' "
+            "ONLY using the provided class notes. Do not add outside facts.\n\n"
+            "Please format your response in **clear Markdown** so it renders nicely.\n\n"
+            "## **What it is**\n"
+            "- One short paragraph definition.\n\n"
+            "## **Why it matters**\n"
+            "- Bullet 1\n"
+            "- Bullet 2\n"
+            "- Bullet 3\n\n"
+            "## **How it works**\n"
+            "1. Step 1\n"
+            "2. Step 2\n"
+            "3. Step 3 (add formulas or rules verbatim from the notes)\n\n"
+            "## **Examples**\n"
+            "- **Example 1:** inputs → process → result\n"
+            "- **Example 2:** (if available)\n\n"
+            "## **Common mistakes**\n"
+            "- Mistake 1\n"
+            "- Mistake 2\n"
+            "- Mistake 3\n\n"
+            "## **Quick check**\n"
+            "1. Question 1\n"
+            "2. Question 2\n"
+            "3. Question 3\n\n"
+            "Class Notes Context:\n"
+            "{retrieved_context}\n\n"
+            "Explain now:"
+        )
+
         response = qa_chain.run(prompt)
 
         return {"explanation": response}
@@ -141,12 +183,18 @@ async def generate_quiz(body: QuizRequest):
                 question_count = int(match.group(1))
 
         prompt = (
-            f"Create a {question_count}-question multiple-choice quiz based on the following content. "
-            "Each question should have 4 options (A–D), and mark the correct one with '(Correct)':\n\n"
-            f"{combined_text}\n\nQuiz:"
+            f"Create a {question_count}-question multiple-choice quiz based ONLY on the provided content.\n"
+            "The quiz should be in three categories of difficulty: easy,moderate and hard"
+            "Format the output in clean **Markdown** so each question and its options are on separate lines.\n\n"
+            "Each question should be numbered `1.`, `2.`, etc.\n"
+            "Each option should be labeled `A)`, `B)`, `C)`, `D)` **on its own line**.\n"
+            "Mark the correct option by adding `(Correct)` immediately after it.\n\n"
+            f"Content:\n{combined_text}\n\n"
+            "Quiz:\n"
         )
 
-        print("🧠 Generating quiz...")
+
+        print(" Generating quiz...")
         response = llm.invoke(prompt)
 
         # If not enough questions generated
@@ -158,5 +206,114 @@ async def generate_quiz(body: QuizRequest):
         return {"quiz": response}
 
     except Exception as e:
-        print("❌ Error generating quiz:", str(e))
+        print(" Error generating quiz:", str(e))
+        return {"error": str(e)}
+    
+class CaseStudyRequest(BaseModel):
+    session_id: str
+    # Optional prompt customization if needed
+    prompt: Optional[str] = None
+
+@app.post("/generate_case_study/")
+async def generate_case_study(body: CaseStudyRequest):
+    try:
+        persist_path = os.path.join("sessions", body.session_id)
+        if not os.path.exists(persist_path):
+            return {"error": "Please upload a PDF first to load context."}
+
+        # Load vectorstore
+        embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        vectorstore = Chroma(persist_directory=persist_path, embedding_function=embedding_model)
+        retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 10})
+        llm = Ollama(model="llama3")
+        qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
+
+        # Retrieve relevant content (top 15 chunks)
+        docs = vectorstore.similarity_search("overview", k=15)
+        combined_text = "\n".join([doc.page_content for doc in docs])
+
+        # Use custom prompt if provided, else default
+        prompt = body.prompt or (
+            "Read  uploaded PDF content  and create a business case study "
+            "designed for undergraduate business students to solve in about 30 minutes. "
+            "Make it engaging and realistic.\n"
+            "End the case study with 5 thought-provoking discussion questions.\n\n"
+            f"Content:\n{combined_text}\n\nCase Study:"
+        )
+
+        print("🧠 Generating case study...")
+        response = llm.invoke(prompt)
+
+        return {"caseStudy": response}
+
+    except Exception as e:
+        print("❌ Error generating case study:", str(e))
+        return {"error": str(e)}
+    
+class VisualizeRequest(BaseModel):
+    session_id: str
+    prompt: str = ""
+
+import json
+import re
+
+@app.post("/generate_visualization/")
+async def generate_visualization(body: VisualizeRequest):
+    try:
+        persist_path = os.path.join("sessions", body.session_id)
+        if not os.path.exists(persist_path):
+            return {"error": "Please upload a PDF or CSV first to load context."}
+
+        # Load vectorstore & retriever
+        embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        vectorstore = Chroma(persist_directory=persist_path, embedding_function=embedding_model)
+        retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 10})
+
+        llm = Ollama(model="llama3")
+        qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
+
+        # Retrieve relevant docs (e.g. top 15)
+        docs = vectorstore.similarity_search("data overview", k=15)
+        combined_text = "\n".join([doc.page_content for doc in docs])
+
+        # Prompt to check and create visualization text
+        prompt_text = (
+            "You are an assistant that reads the document content about data and decides if there is "
+            "something meaningful to visualize. If yes, respond *only* with a JSON object containing:\n"
+            " - description (string): short summary of the data\n"
+            " - type (string): type of chart, e.g. 'bar_chart'\n"
+            " - data (array): array of objects with 'label' and 'value' fields\n"
+            "If you cannot visualize the data, reply with the exact string:\n"
+            "'I cannot visualize data from this document.'\n\n"
+            f"Document Content:\n{combined_text}\n\n"
+            "Answer with JSON only:"
+        )
+
+        response = llm.invoke(prompt_text)
+        print("LLM raw response:", repr(response))  # Debug output
+
+        # Helper to extract JSON from response string
+        def extract_json_from_response(text):
+            match = re.search(r'(\{.*\})', text, re.DOTALL)
+            if match:
+                return match.group(1)
+            return None
+
+        json_str = extract_json_from_response(response)
+
+        if json_str:
+            try:
+                visualization_json = json.loads(json_str)
+                return {"visualization": visualization_json}
+            except Exception as e:
+                print("JSON parse error:", str(e))
+                print("Failed extracted JSON:", repr(json_str))
+                return {"error": "Could not parse extracted JSON from LLM response."}
+        else:
+            if response.strip() == "I cannot visualize data from this document.":
+                return {"visualization": {"description": response, "type": "none", "data": []}}
+            else:
+                return {"error": "Could not find JSON in LLM response."}
+
+    except Exception as e:
         return {"error": str(e)}

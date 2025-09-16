@@ -3,6 +3,50 @@ import { RxLightningBolt } from "react-icons/rx";
 import FileUploader from "./FileUploader";
 import { format } from "date-fns";
 import UploadIllustration from "@/assets/undraw_files-uploading_qf8u.svg";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
+
+
+function normalizeQuizMarkdown(raw) {
+  let text = Array.isArray(raw) ? raw.join("\n\n") : String(raw ?? "");
+
+
+  text = text.replace(/^.*?(?=\d+\.\s|[A-Z].+?\?)/s, "").trim();
+
+  const questionBlocks = text
+    .split(/\?\s*(?=[A-D][\):])/)
+    .map(q => q.trim())
+    .filter(q => q.length > 0);
+
+  const formatted = questionBlocks
+    .map((block, i) => {
+
+      if (!block.includes("?")) {
+        const firstOptionIndex = block.search(/[A-D][\):]/);
+        if (firstOptionIndex > 0) {
+          block =
+            block.slice(0, firstOptionIndex).trim() +
+            "?" +
+            block.slice(firstOptionIndex);
+        }
+      }
+
+
+      block = block
+        .replace(/([ABCD])\)\s*/g, "\n$1) ")
+        .replace(/([ABCD]):\s*/g, "\n$1) ");
+
+      block = block.replace(/\(Correct\)/g, "**(Correct)** ");
+
+      return `${i + 1}. ${block.trim()}`;
+    })
+    .join("\n\n");
+
+  return formatted;
+}
 
 export default function Form() {
   const [files, setFiles] = useState([]);
@@ -11,7 +55,7 @@ export default function Form() {
     summarize: false,
     explain: false,
     quiz: false,
-    voice: false,
+    casestudy: false,
     podcast: false,
     visualize: false,
   });
@@ -70,7 +114,7 @@ export default function Form() {
       summarize: false,
       explain: false,
       quiz: false,
-      voice: false,
+      casestudy: false,
       podcast: false,
       visualize: false,
     });
@@ -83,7 +127,7 @@ const handleSubmit = async () => {
     return;
   }
 
-  if (!tasks.summarize && !tasks.explain && !tasks.quiz) {
+  if (!tasks.summarize && !tasks.explain && !tasks.quiz && !tasks.casestudy && !tasks.visualize) {
     alert("Please select at least one task.");
     return;
   }
@@ -174,6 +218,52 @@ const handleSubmit = async () => {
           : ["Unexpected quiz format."];
     }
 
+    // 5. Case Study
+    if (tasks.casestudy) {
+      const caseStudyRes = await fetch("http://127.0.0.1:8000/generate_case_study/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id,
+          prompt: "",  // optional, can customize if needed
+        }),
+      });
+
+      if (!caseStudyRes.ok) throw new Error("Failed to generate case study");
+      const caseStudyData = await caseStudyRes.json();
+
+      if (caseStudyData.error) {
+        alert("Error: " + caseStudyData.error);
+        setLoading(false);
+        return;
+      }
+
+      resultsObj.caseStudy = caseStudyData.caseStudy;
+    }
+
+  // 6. Visualize Data
+      if (tasks.visualize) {
+        const visualizeRes = await fetch("http://127.0.0.1:8000/generate_visualization/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id,
+            prompt: prompt || "",
+          }),
+        });
+
+        if (!visualizeRes.ok) throw new Error("Failed to generate visualization");
+        const visualizeData = await visualizeRes.json();
+
+        if (visualizeData.error) {
+          alert("Error: " + visualizeData.error);
+          setLoading(false);
+          return;
+        }
+
+        resultsObj.visualize = visualizeData.visualization;
+      }
+
     setResults(resultsObj);
   } catch (err) {
     console.error(err);
@@ -203,9 +293,9 @@ const handleSubmit = async () => {
       description: "Generate a custom quiz from your document.",
     },
     {
-      name: "voice",
-      label: "Voice Interaction",
-      description: "Use voice commands to learn hands-free.",
+      name: "casestudy",
+      label: "Relevant case Study",
+      description: "Relevant case study based on topic or pdf upload",
     },
     {
       name: "podcast",
@@ -301,26 +391,62 @@ const handleSubmit = async () => {
                 {results.summarize && (
                   <div>
                     <h3 className="font-semibold">Summary</h3>
-                    <p>{results.summarize}</p>
+                    <div className="prose max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {results.summarize}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 )}
                 {results.explain && (
                   <div>
                     <h3 className="font-semibold">Explanation</h3>
-                    <p>{results.explain}</p>
+                    <div className="prose max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {results.explain}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 )}
                 {results.quiz && (
                   <div>
                     <h3 className="font-semibold">Quiz Questions</h3>
-                    <ul className="list-disc pl-5">
-                      {(Array.isArray(results.quiz)
-                        ? results.quiz
-                        : results.quiz.split(/\n(?=\d+\.)/)  // splits on numbered lines like "1.", "2.", etc.
-                      ).map((q, i) => (
-                        <li key={i} dangerouslySetInnerHTML={{ __html: q.trim() }} />
-                      ))}
-                    </ul>
+                    <div className="prose max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {normalizeQuizMarkdown(results.quiz)}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                )}
+                {results.caseStudy && (
+                  <div>
+                    <h3 className="font-semibold">Case Study</h3>
+                    <div className="prose max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {results.caseStudy}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                )}
+                {results.visualize && (
+                  <div>
+                    <h3 className="font-semibold">Visualization Insight</h3>
+                    <p className="mb-4">{results.visualize.description}</p>
+
+                    {results.visualize.type === "bar_chart" && (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={results.visualize.data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="label" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="value" fill="#8884d8" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+
+                    {/* You can add more chart types here, e.g., pie_chart, line_chart, etc. */}
                   </div>
                 )}
               </div>
