@@ -316,4 +316,4 @@ async def generate_visualization(body: VisualizeRequest):
                 return {"error": "Could not find JSON in LLM response."}
 
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e)} 
