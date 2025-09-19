@@ -62,6 +62,7 @@ export default function Form() {
   const [showTooltip, setShowTooltip] = useState(false);
 
   const handleFilesSelected = (selectedFiles) => {
+    setResults(null); // Clear previous results on new upload
     const fileArray = Array.isArray(selectedFiles)
       ? selectedFiles
       : Array.from(selectedFiles || []);
@@ -76,7 +77,7 @@ export default function Form() {
   const handleClear = () => {
     setFiles([]);
     setPrompt("");
-    setQuizCount("5");
+
     setTasks({
       summarize: false,
       explain: false,
@@ -88,53 +89,70 @@ export default function Form() {
     setResults(null);
   };
 
-  const handleSubmit = async () => {
-    if (!files.length) {
-      alert("Please upload at least one document.");
+const handleSubmit = async () => {
+  if (!files.length) {
+    alert("Please upload at least one document.");
+    return;
+  }
+
+  if (!tasks.summarize && !tasks.explain && !tasks.quiz) {
+    alert("Please select at least one task.");
+    return;
+  }
+
+  if (tasks.explain && !prompt.trim()) {
+    alert("Please enter a prompt for explanation.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append("file", files[0]);
+
+    // 1. Upload + Summarize to get session_id
+    const uploadRes = await fetch("http://127.0.0.1:8000/summarize_pdf/", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!uploadRes.ok) throw new Error("Failed to upload and summarize PDF");
+    const uploadData = await uploadRes.json();
+
+    if (uploadData.error) {
+      alert("Error: " + uploadData.error);
+      setLoading(false);
       return;
     }
-    if (!Object.values(tasks).some(Boolean)) {
-      alert("Please select at least one task.");
-      return;
+
+    const session_id = uploadData.session_id;
+    const resultsObj = {};
+
+    // 2. Add summary to results
+    if (tasks.summarize) {
+      resultsObj.summarize = uploadData.summary;
     }
 
     setLoading(true);
 
     try {
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock results
-      const mockResults = {};
-      if (tasks.summarize) {
-        mockResults.summarize = "This is a sample summary of your uploaded documents. The content has been analyzed and key points have been extracted.";
-      }
-      if (tasks.explain) {
-        mockResults.explain = "Here's a detailed explanation of the complex concepts found in your documents, broken down into simpler terms.";
-      }
-      if (tasks.quiz) {
-        mockResults.quiz = Array.from({ length: parseInt(quizCount) }, (_, i) => 
-          `Sample quiz question ${i + 1}: What is the main topic discussed in section ${i + 1}?`
-        );
-      }
-      if (tasks.voice) {
-        mockResults.voice = "Sample case study: This innovation was successfully applied in a real-world scenario at Company X, resulting in 30% efficiency improvement.";
-      }
-      if (tasks.podcast) {
-        mockResults.podcast = "Podcast script generated! Your content has been converted into an engaging audio format with natural transitions and explanations.";
-      }
-      if (tasks.visualize) {
-        mockResults.visualize = "Data visualization created! Key metrics and concepts have been converted into charts and infographics.";
-      }
-      
-      setResults(mockResults);
+
     } catch (err) {
       console.error(err);
       alert("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
+
+    setResults(resultsObj);
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const taskCards = [
     {
@@ -188,51 +206,12 @@ export default function Form() {
   };
 
   return (
-    <div className="min-h-screen py-12">
-      <main className="flex items-center justify-center px-4">
-        {/* Main Form Container */}
-        <div className="w-full max-w-4xl rounded-3xl border border-gray-200 shadow-xl bg-white">
-          {/* Header Section with increased padding */}
-          <div className="px-8 py-10 bg-gradient-to-r from-blue-500 to-cyan-600 relative rounded-t-3xl">
-            <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-bold text-white">RAG Assistant</h2>
-              <div 
-                className="relative"
-                onMouseEnter={() => setShowTooltip(true)}
-                onMouseLeave={() => setShowTooltip(false)}
-              >
-                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center cursor-help hover:bg-white/30 transition-colors">
-                  <span className="text-white text-sm font-bold">i</span>
-                </div>
-                
-                {/* Tooltip */}
-                {showTooltip && (
-                  <div className="absolute top-8 left-0 bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-800 p-5 rounded-xl shadow-2xl z-20 w-80 border border-blue-200 backdrop-blur-sm">
-                    <div className="text-sm">
-                      <h4 className="font-bold mb-3 text-blue-900 flex items-center gap-2">
-                        <span className="text-blue-500">💡</span>
-                        Quick Tips
-                      </h4>
-                      <ul className="list-disc list-inside space-y-2 text-gray-700">
-                        <li>Upload PDF, DOCX, or TXT files</li>
-                        <li>Generate quizzes, summaries, and explanations directly from your files</li>
-                        <li>Ask specific questions for more accurate results</li>
-                        <li>Select multiple tasks for a complete analysis</li>
-                      </ul>
-                    </div>
-                    {/* Triangle pointer */}
-                    <div className="absolute -top-2 left-4 w-4 h-4 bg-gradient-to-br from-blue-50 to-indigo-100 border-l border-t border-blue-200 transform rotate-45"></div>
-                  </div>
-                )}
-              </div>
-            </div>
-            <p className="text-white/90 mt-3 text-lg">
+
               Upload documents and ask questions to get intelligent insights
             </p>
           </div>
 
-          {/* Main Content - removed max-h-screen and overflow-auto */}
-          <div className="flex-1 bg-white flex flex-col p-8 gap-6">
+
             {/* Upload */}
             <div>
               <label className="block mb-3 font-semibold text-center text-gray-700">Upload Documents</label>
@@ -378,11 +357,7 @@ export default function Form() {
                 )}
                 
                 {results.quiz && (
-                  <div className="bg-purple-50 p-5 rounded-lg border border-purple-200">
-                    <h3 className="font-semibold text-purple-900 mb-2">Quiz Questions</h3>
-                    <ol className="list-decimal list-inside space-y-2 text-gray-700">
-                      {results.quiz.map((q, i) => (
-                        <li key={i}>{q}</li>
+
                       ))}
                     </ol>
                   </div>
