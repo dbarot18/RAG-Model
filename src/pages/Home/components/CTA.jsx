@@ -1,24 +1,24 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaRobot } from "react-icons/fa";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import mainVideo from "../../../assets/mainpage.mp4";
 
 const examples = [
   {
-    prompt: "Explain quantum computing in simple terms.",
+    prompt: "Explain quantum computing in simple terms",
     response:
       "Quantum computing uses principles of quantum mechanics to solve problems faster than traditional computers. It uses 'qubits' that can represent multiple states simultaneously, allowing complex calculations in parallel.",
   },
   {
-    prompt: "Summarize today’s news in one paragraph.",
+    prompt: "Summarize the key points of this document",
     response:
-      "Today's headlines focus on advancements in AI governance, fluctuating economic indicators, and climate action initiatives. Meanwhile, tech giants are embedding language models into everyday tools for smarter workflows.",
+      "I can help you extract and summarize the most important information from any document. Upload your PDF or text file, and I'll provide a clear, concise summary highlighting the main concepts and key takeaways.",
   },
   {
-    prompt: "How does a RAG model work?",
+    prompt: "Create study notes from my lecture materials",
     response:
-      "RAG combines document retrieval with generative models. It first fetches relevant documents and then generates a contextual response by combining the query with those documents.",
+      "I'll transform your lecture materials into organized study notes with clear headings, bullet points, and highlighted key concepts. Perfect for exam preparation and quick review sessions.",
   },
 ];
 
@@ -55,17 +55,19 @@ export default function CTA() {
       setTypedAnswer("");
       const delay = setTimeout(() => {
         setShowResponse(true);
-        let index = 0;
+        let charIndex = 0;
         const interval = setInterval(() => {
-          setTypedAnswer((prev) =>
-            prev + examples[selectedIndex].response.charAt(index)
-          );
-          index++;
-          if (index === examples[selectedIndex].response.length) {
+          if (charIndex < examples[selectedIndex].response.length) {
+            setTypedAnswer((prev) =>
+              prev + examples[selectedIndex].response.charAt(charIndex)
+            );
+            charIndex++;
+          } else {
             clearInterval(interval);
           }
         }, 15);
-      }, 600);
+        return () => clearInterval(interval);
+      }, 300);
       return () => clearTimeout(delay);
     }
   }, [selectedIndex]);
@@ -76,6 +78,7 @@ export default function CTA() {
 
   return (
     <div className="relative isolate px-6 pt-20 pb-32 lg:px-8">
+      {/* Video Background - Uncomment if needed */}
       {/* <video
         autoPlay
         loop
@@ -84,6 +87,7 @@ export default function CTA() {
         className="absolute inset-0 w-full h-full object-cover -z-20 bg-video-blur"
         src={mainVideo}
       /> */}
+      
       <div className="absolute inset-x-0 top-0 z-10 overflow-hidden leading-none rotate-180">
         <svg
           className="w-full h-[200px]"
@@ -129,7 +133,8 @@ export default function CTA() {
           </path>
         </svg>
       </div>
-      <div className="relative isolate px-6 pt-0 pb-32 lg:px-8">
+      
+      <div className="relative isolate px-6 pt-0 lg:px-8">
         <div
           aria-hidden="true"
           className="absolute inset-0 -z-10 blur-3xl opacity-30"
@@ -139,49 +144,80 @@ export default function CTA() {
             animation: "gradientShift 15s ease infinite",
           }}
         />
+        
         <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-48 text-center">
           <h1 className="text-5xl font-semibold tracking-tight text-black sm:text-7xl">
             Transform Your Learning Experience
           </h1>
-          <p className="mt-8 text-lg font-medium text-black sm:text-xl/8 leading-relaxed" style={{ minHeight: "4.5rem", whiteSpace: "normal", overflow: "hidden" }}>
+          <p className="mt-8 text-lg font-medium text-black sm:text-xl/8 leading-relaxed" 
+             style={{ minHeight: "4.5rem", whiteSpace: "normal", overflow: "hidden" }}>
             {typedText}
             <span className="animate-pulse">|</span>
           </p>
+          
           <div className="mt-10 flex items-center justify-center gap-x-6">
-            <Link className="btn" to="upload">Get started</Link>
-            <Link className="link font-semibold text-black text-sm/6">Learn More <span aria-hidden="true">→</span></Link>
+            <Link className="btn" to="/upload">Get started</Link>
+            <Link className="link font-semibold text-black text-sm/6" to="/about">
+              Learn More <span aria-hidden="true">→</span>
+            </Link>
           </div>
 
-         <div className="absolute bottom-12 inset-x-0 px-6 md:px-12 lg:px-28">
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-6 text-center">⚡ Try Prompt Examples</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {/* Try Prompt Examples Section
+          <div className="mt-20">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 text-center">
+              ⚡ Try AI Assistant Examples
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {examples.map((example, index) => (
                 <motion.div
                   key={index}
-                  className="cursor-pointer bg-[#8294dc] px-10 h-17 flex justify-center py-3 rounded-xl shadow-lg text-white hover:scale-[1.02] transition-transform duration-300 w-full"
-                  onClick={() => handlePromptClick(index)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  className="relative"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
                 >
-                  <h3 className="text-sm font-medium mb-1 whitespace-pre-wrap w-full">{example.prompt}</h3>
+                  <motion.button
+                    className="w-full text-left bg-gradient-to-r from-indigo-500 to-purple-600 p-5 rounded-xl shadow-lg text-white hover:shadow-xl transition-all duration-300"
+                    onClick={() => handlePromptClick(index)}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <FaRobot className="text-xl mt-1 flex-shrink-0" />
+                      <h3 className="text-base font-semibold leading-relaxed">
+                        {example.prompt}
+                      </h3>
+                    </div>
+                  </motion.button>
+                  
                   <AnimatePresence>
                     {selectedIndex === index && showResponse && (
                       <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.4 }}
-                        className="mt-3 bg-white text-gray-800 p-3 rounded-md shadow-inner flex gap-2 items-start"
+                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                        animate={{ opacity: 1, height: "auto", marginTop: 12 }}
+                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
                       >
-                        <FaRobot className="text-indigo-500 mt-1" />
-                        <p className="text-xs leading-relaxed whitespace-pre-wrap">{typedAnswer}</p>
+                        <div className="p-4">
+                          <div className="flex gap-3 items-start">
+                            <FaRobot className="text-indigo-500 mt-1 text-lg flex-shrink-0" />
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                              {typedAnswer}
+                              {typedAnswer.length < examples[selectedIndex].response.length && (
+                                <span className="inline-block w-0.5 h-4 bg-gray-400 animate-pulse ml-0.5" />
+                              )}
+                            </p>
+                          </div>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </motion.div>
               ))}
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -193,13 +229,16 @@ export default function CTA() {
           xmlns="http://www.w3.org/2000/svg"
         >
           <path d="M0,0 C300,100 900,0 1200,100 L1200,120 L0,120 Z" fill="#6366f1" opacity="0.3">
-            <animate attributeName="d" dur="10s" repeatCount="indefinite" values="M0,0 C300,100 900,0 1200,100 L1200,120 L0,120 Z; M0,0 C200,80 1000,30 1200,90 L1200,120 L0,120 Z; M0,0 C300,100 900,0 1200,100 L1200,120 L0,120 Z" />
+            <animate attributeName="d" dur="10s" repeatCount="indefinite" 
+                     values="M0,0 C300,100 900,0 1200,100 L1200,120 L0,120 Z; M0,0 C200,80 1000,30 1200,90 L1200,120 L0,120 Z; M0,0 C300,100 900,0 1200,100 L1200,120 L0,120 Z" />
           </path>
           <path d="M0,0 C400,80 800,30 1200,90 L1200,120 L0,120 Z" fill="#38bdf8" opacity="0.5">
-            <animate attributeName="d" dur="12s" repeatCount="indefinite" values="M0,0 C400,80 800,30 1200,90 L1200,120 L0,120 Z; M0,0 C300,100 900,10 1200,100 L1200,120 L0,120 Z; M0,0 C400,80 800,30 1200,90 L1200,120 L0,120 Z" />
+            <animate attributeName="d" dur="12s" repeatCount="indefinite" 
+                     values="M0,0 C400,80 800,30 1200,90 L1200,120 L0,120 Z; M0,0 C300,100 900,10 1200,100 L1200,120 L0,120 Z; M0,0 C400,80 800,30 1200,90 L1200,120 L0,120 Z" />
           </path>
           <path d="M0,0 C500,90 700,20 1200,100 L1200,120 L0,120 Z" fill="#0ea5e9" opacity="0.7">
-            <animate attributeName="d" dur="14s" repeatCount="indefinite" values="M0,0 C500,90 700,20 1200,100 L1200,120 L0,120 Z; M0,0 C300,70 900,30 1200,80 L1200,120 L0,120 Z; M0,0 C500,90 700,20 1200,100 L1200,120 L0,120 Z" />
+            <animate attributeName="d" dur="14s" repeatCount="indefinite" 
+                     values="M0,0 C500,90 700,20 1200,100 L1200,120 L0,120 Z; M0,0 C300,70 900,30 1200,80 L1200,120 L0,120 Z; M0,0 C500,90 700,20 1200,100 L1200,120 L0,120 Z" />
           </path>
         </svg>
       </div>

@@ -12,7 +12,7 @@ export default function Upload() {
       className="min-h-screen w-full bg-[length:400%_400%] animate-gradientShift"
       style={{
         backgroundImage:
-          "linear-gradient(-45deg, #fef6e4, #e0f4f5, #f0eafc, #fdf2f8, #e4f0d0)"
+          "linear-gradient(-45deg, #f8fafc, #e0f2fe)"
       }}
     >
       <div className="flex flex-col min-h-screen w-full">
