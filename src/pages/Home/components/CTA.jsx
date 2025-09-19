@@ -76,15 +76,14 @@ export default function CTA() {
 
   return (
     <div className="relative isolate px-6 pt-20 pb-32 lg:px-8">
-      Background Video
-      <video
+      {/* <video
         autoPlay
         loop
         muted
         playsInline
         className="absolute inset-0 w-full h-full object-cover -z-20 bg-video-blur"
         src={mainVideo}
-      />
+      /> */}
       <div className="absolute inset-x-0 top-0 z-10 overflow-hidden leading-none rotate-180">
         <svg
           className="w-full h-[200px]"
@@ -131,7 +130,7 @@ export default function CTA() {
         </svg>
       </div>
       <div className="relative isolate px-6 pt-0 pb-32 lg:px-8">
-        {/* <div
+        <div
           aria-hidden="true"
           className="absolute inset-0 -z-10 blur-3xl opacity-30"
           style={{
@@ -139,18 +138,18 @@ export default function CTA() {
             backgroundSize: "600% 600%",
             animation: "gradientShift 15s ease infinite",
           }}
-        /> */}
+        />
         <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-48 text-center">
-          <h1 className="text-5xl font-semibold tracking-tight text-white sm:text-7xl">
+          <h1 className="text-5xl font-semibold tracking-tight text-black sm:text-7xl">
             Transform Your Learning Experience
           </h1>
-          <p className="mt-8 text-lg font-medium text-white sm:text-xl/8 leading-relaxed" style={{ minHeight: "4.5rem", whiteSpace: "normal", overflow: "hidden" }}>
+          <p className="mt-8 text-lg font-medium text-black sm:text-xl/8 leading-relaxed" style={{ minHeight: "4.5rem", whiteSpace: "normal", overflow: "hidden" }}>
             {typedText}
             <span className="animate-pulse">|</span>
           </p>
           <div className="mt-10 flex items-center justify-center gap-x-6">
             <Link className="btn" to="upload">Get started</Link>
-            <Link className="btn link font-semibold text-sm/6">Learn More <span aria-hidden="true">→</span></Link>
+            <Link className="link font-semibold text-black text-sm/6">Learn More <span aria-hidden="true">→</span></Link>
           </div>
 
          <div className="absolute bottom-12 inset-x-0 px-6 md:px-12 lg:px-28">

@@ -196,8 +196,6 @@ const handleSubmit = async () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <main className="flex flex-col md:flex-row gap-8 w-full flex-1 px-4 py-6">
-
         {/* Left Panel */}
         <div className="w-full md:w-2/3 flex flex-col rounded-3xl border border-border overflow-hidden">
           <div className="p-6 bg-gradient-to-r from-blue-500 to-cyan-600">
@@ -228,23 +226,6 @@ const handleSubmit = async () => {
               />
             </div>
 
-            {/* Quiz Count (conditionally shown) */}
-            {tasks.quiz && (
-              <div>
-                <label className="block mb-2 font-semibold">
-                  Number of quiz questions
-                </label>
-                <input
-                  type="number"
-                  value={quizCount}
-                  onChange={(e) => setQuizCount(e.target.value)}
-                  className="border border-blue-600 rounded-lg w-full py-2 px-3"
-                  placeholder="e.g., 5 or 10"
-                  min={1}
-                />
-              </div>
-            )}
-
             {/* Task Selection */}
             <div>
               <p className="mb-2 font-semibold">Select Tasks</p>
@@ -273,7 +254,7 @@ const handleSubmit = async () => {
             </div>
 
             {/* Buttons */}
-            <div className="flex flex-wrap gap-4">
+            <div className="flex items-center justify-center flex-wrap gap-4">
               <button
                 type="button"
                 onClick={handleSubmit}
@@ -281,13 +262,13 @@ const handleSubmit = async () => {
                 disabled={loading}
               >
                 {loading ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex justify-center items-center gap-2">
                     <svg
                       className="animate-spin h-5 w-5 text-white"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
-                    >
+                    >12
                       <circle
                         className="opacity-25"
                         cx="12"
@@ -352,9 +333,9 @@ const handleSubmit = async () => {
           </div>
         </div>
 
-        {/* Right Sidebar */}
+        {/* Right Sidebar
         <div className="w-full md:w-1/3 space-y-6">
-          <div className="rounded-3xl shadow border border-border bg-gradient-to-br from-cyan-500 to-blue-500 p-6 text-white hover:-translate-y-1 hover:shadow-lg transition-transform">
+          {/* <div className="rounded-3xl shadow border border-border bg-gradient-to-br from-cyan-500 to-blue-500 p-6 text-white hover:-translate-y-1 hover:shadow-lg transition-transform">
             <div className="flex items-center gap-3 mb-4">
               <RxLightningBolt className="w-6 h-6" />
               <h3 className="text-2xl font-bold">Quick Tips</h3>
@@ -369,9 +350,9 @@ const handleSubmit = async () => {
                 View Tutorial
               </button>
             </a>
-          </div>
+          </div> */}
 
-          {/* Recent Activity */}
+          {/* Recent Activity
           <div className="rounded-3xl shadow border border-border bg-white p-6 text-gray-800 hover:-translate-y-1 hover:shadow-lg transition-transform">
             <h3 className="text-xl font-semibold mb-4">Recent Activity</h3>
             <ul className="space-y-3 text-sm">
@@ -391,8 +372,8 @@ const handleSubmit = async () => {
                 ))
               )}
             </ul>
-          </div>
-        </div>
+          </div> */}
+        {/* </div> */}
       </main>
     </div>
   );
