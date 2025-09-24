@@ -4,23 +4,6 @@ import { FaRobot } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import mainVideo from "../../../assets/mainpage.mp4";
 
-const examples = [
-  {
-    prompt: "Explain quantum computing in simple terms",
-    response:
-      "Quantum computing uses principles of quantum mechanics to solve problems faster than traditional computers. It uses 'qubits' that can represent multiple states simultaneously, allowing complex calculations in parallel.",
-  },
-  {
-    prompt: "Summarize the key points of this document",
-    response:
-      "I can help you extract and summarize the most important information from any document. Upload your PDF or text file, and I'll provide a clear, concise summary highlighting the main concepts and key takeaways.",
-  },
-  {
-    prompt: "Create study notes from my lecture materials",
-    response:
-      "I'll transform your lecture materials into organized study notes with clear headings, bullet points, and highlighted key concepts. Perfect for exam preparation and quick review sessions.",
-  },
-];
 
 export default function CTA() {
   const fullText =
